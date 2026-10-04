@@ -1,0 +1,15 @@
+<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<body style="font:16px system-ui;margin:16px">
+<p>Вставьте токен и нажмите кнопку:</p>
+<input id="t" style="width:100%;padding:8px"><br><br>
+<button id="b" style="padding:12px 20px">Проверить</button>
+<pre id="o" style="white-space:pre-wrap"></pre>
+<script>
+b.onclick = async () => {
+  o.textContent = 'Проверяю...';
+  try {
+    const r = await fetch('https://partner.yandex.ru/api/statistics2/tree.json?lang=ru', { headers: { Authorization: 'OAuth ' + t.value.trim() } });
+    o.textContent = 'ОТВЕТ ПОЛУЧЕН: ' + r.status + '\n' + (await r.text()).slice(0, 300);
+  } catch (e) { o.textContent = 'ОШИБКА (браузер заблокировал запрос): ' + e.message; }
+};
+</script>
