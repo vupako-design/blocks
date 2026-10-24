@@ -36,7 +36,7 @@ const load = async (p) => {
   localStorage.u = u; localStorage.t = t;
   n.textContent = 'Загрузка…';
   try {
-    const raw = await fetchApi(t, p, u);
+    const raw = await fetchApi(t, p, u, (c) => (n.textContent = 'Загрузка… строк: ' + c));
     rows = process(raw); sel = ''; show();
     if (!rows.length) n.textContent = `Получено строк: ${raw.length}, под фильтр ничего не подошло. Пример: ${JSON.stringify(raw[0])}`;
   } catch (e) {

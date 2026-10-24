@@ -47,18 +47,20 @@ const process = (rows) =>
 
 // Яндекс API (partner.yandex.ru). Названия полей — в одном месте, если что-то не так, правим здесь.
 const v = (x) => [].concat(x)[0];
-async function fetchApi(token, period, base) {
+async function fetchApi(token, period, base, onPage) {
   const out = [];
-  for (let offset = 0, last = false; !last; offset += 1000) {
-    const q = new URLSearchParams({ lang: 'ru', period, dimension_field: 'geo|city', limits: JSON.stringify({ limit: 1000, offset }) });
+  for (let pages = 0, last = false; !last && pages < 200; pages++) {
+    const q = new URLSearchParams({ lang: 'ru', period, dimension_field: 'geo|city', limits: JSON.stringify({ limit: 1000, offset: out.length }) });
     ['shows', 'partner_wo_nds', 'clicks'].forEach((f) => q.append('field', f));
     ['block_caption', 'browser'].forEach((f) => q.append('entity_field', f));
-    const r = await fetch(base.replace(/\/$/, '') + '/api/statistics2/get.json?' + q, { headers: { Authorization: 'OAuth ' + token } });
+    const r = await fetch(base.replace(/\/$/, '') + '/api/statistics2/get.json?' + q, { headers: { Authorization: 'OAuth ' + token }, signal: AbortSignal.timeout(30000) });
     const j = await r.json().catch(() => ({}));
     if (j.result !== 'ok') throw new Error(r.status + ' ' + JSON.stringify(j).slice(0, 300));
-    for (const { dimensions: d, measures: [m] } of j.data.points)
+    const pts = j.data.points;
+    for (const { dimensions: d, measures: [m] } of pts)
       out.push({ geo: v(d.geo), block: String(v(d.block_caption)), browser: v(d.browser), shows: m.shows, reward: m.partner_wo_nds, clicks: m.clicks, cpmv: m.shows ? (m.partner_wo_nds / m.shows) * 1000 : 0 });
-    last = j.data.is_last_page;
+    onPage && onPage(out.length);
+    last = j.data.is_last_page === true || !pts.length;
   }
   return out;
 }
