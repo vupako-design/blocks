@@ -1,0 +1,31 @@
+name: Обновление данных
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: pages
+  cancel-in-progress: false
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.d.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - run: node update.js
+        env:
+          YANDEX_TOKEN: ${{ secrets.YANDEX_TOKEN }}
+      - run: cp index.html logic.js sw.js manifest.json icon-192.png icon-512.png _site/
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: _site
+      - id: d
+        uses: actions/deploy-pages@v5
