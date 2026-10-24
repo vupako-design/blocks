@@ -45,4 +45,22 @@ const process = (rows) =>
     .sort((a, b) => b.cpmv - a.cpmv)
     .map((r) => ({ ...r, block: r.block.replace('HTML5 game: ', ''), green: r.shows > 1 }));
 
-if (typeof module !== 'undefined') module.exports = { parseXlsx, process };
+// Яндекс API (partner.yandex.ru). Названия полей — в одном месте, если что-то не так, правим здесь.
+const v = (x) => [].concat(x)[0];
+async function fetchApi(token, period) {
+  const out = [];
+  for (let offset = 0, last = false; !last; offset += 1000) {
+    const q = new URLSearchParams({ lang: 'ru', period, dimension_field: 'geo|city', limits: JSON.stringify({ limit: 1000, offset }) });
+    ['shows', 'partner_wo_nds', 'clicks'].forEach((f) => q.append('field', f));
+    ['block_caption', 'browser'].forEach((f) => q.append('entity_field', f));
+    const r = await fetch('https://partner.yandex.ru/api/statistics2/get.json?' + q, { headers: { Authorization: 'OAuth ' + token } });
+    const j = await r.json().catch(() => ({}));
+    if (j.result !== 'ok') throw new Error(r.status + ' ' + JSON.stringify(j).slice(0, 300));
+    for (const { dimensions: d, measures: [m] } of j.data.points)
+      out.push({ geo: v(d.geo), block: String(v(d.block_caption)), browser: v(d.browser), shows: m.shows, reward: m.partner_wo_nds, clicks: m.clicks, cpmv: m.shows ? (m.partner_wo_nds / m.shows) * 1000 : 0 });
+    last = j.data.is_last_page;
+  }
+  return out;
+}
+
+if (typeof module !== 'undefined') module.exports = { parseXlsx, process, fetchApi };
