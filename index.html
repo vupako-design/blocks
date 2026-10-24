@@ -16,45 +16,28 @@ input{display:none}#s{display:flex;flex-wrap:wrap;gap:6px;margin:0 12px 8px;max-
 <div id="s"></div><div id="n"></div><div id="l"></div>
 <script src="logic.js?v=5"></script>
 <script>
-let rows = [], sel = '', busy = 0, last = 0;
+let rows = [], sel = '', upd = '';
 const show = () => {
   const v = sel ? rows.filter((r) => r.geo === sel) : rows;
-  n.textContent = `Найдено: ${v.length}`;
+  n.textContent = `Найдено: ${v.length}${upd}`;
   s.innerHTML = ['', ...new Set(rows.map((r) => r.geo))].sort().map((g) => `<button class="${g === sel ? 'on' : ''}">${g || 'Все'}</button>`).join('');
   l.innerHTML = v.map((r) => `<div class="c"><div class="t">${r.geo}</div><div class="p">${r.cpmv.toFixed(2)} ₽</div>
     <div class="b">${r.block}</div>
     <div class="m">Показы: <span class="${r.green ? 'g' : ''}">${r.shows}</span> · Клики: ${r.clicks}</div>
     <div class="m" style="text-align:right">Доход: ${r.reward.toFixed(2)} ₽</div></div>`).join('');
 };
-f.onchange = async () => { rows = process(await parseXlsx(await f.files[0].arrayBuffer())); sel = ''; show(); };
+f.onchange = async () => { rows = process(await parseXlsx(await f.files[0].arrayBuffer())); sel = upd = ''; show(); };
 s.onclick = (e) => { if (e.target.tagName === 'BUTTON') { sel = e.target.textContent === 'Все' ? '' : e.target.textContent; show(); } };
-const load = async () => {
-  if (busy || Date.now() - last < 6e4) return;
-  const u = localStorage.u || prompt('Адрес посредника (xxx.workers.dev)');
-  if (!u) return;
-  const t = localStorage.t || prompt('Токен Яндекса (сохранится на этом устройстве)');
-  if (!t) return;
-  localStorage.u = u; localStorage.t = t;
-  busy = 1;
-  let cnt = 0;
-  const t0 = Date.now(), tick = setInterval(() => (n.textContent = `Обновляю… ${Math.round((Date.now() - t0) / 1000)} с, строк: ${cnt}`), 500);
-  try {
-    const raw = await fetchApi(t, 'today', u, (c) => (cnt = c));
-    rows = process(raw); last = Date.now();
-    if (!rows.some((r) => r.geo === sel)) sel = '';
-    localStorage.d = JSON.stringify(rows);
-    clearInterval(tick); show();
-    if (!rows.length) n.textContent = `Получено строк: ${raw.length}, под фильтр ничего не подошло. Пример: ${JSON.stringify(raw[0])}`;
-  } catch (e) {
-    clearInterval(tick);
-    if (/\b40[13]\b/.test(e.message)) delete localStorage.t;
-    if (/Failed to fetch/.test(e.message)) delete localStorage.u;
-    n.textContent = 'Ошибка: ' + e.message;
-  }
-  busy = 0;
-};
 l.onclick = (e) => { if (e.target.className === 't') { sel = sel ? '' : e.target.textContent; show(); } };
-try { rows = JSON.parse(localStorage.d); show(); } catch {}
+// Данные кладёт на сайт GitHub (см. update.js), страница их просто читает.
+const load = async () => {
+  try {
+    const d = await (await fetch('data.json', { cache: 'no-store' })).json();
+    rows = d.rows; upd = ' · обновлено ' + new Date(d.updated).toLocaleString('ru', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+    if (!rows.some((r) => r.geo === sel)) sel = '';
+    show();
+  } catch { rows.length || (n.textContent = 'Данных пока нет. На GitHub: Actions → Обновление данных → Run workflow'); }
+};
 load();
 document.onvisibilitychange = () => document.hidden || load();
 'serviceWorker' in navigator && navigator.serviceWorker.register('sw.js');
