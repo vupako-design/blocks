@@ -53,7 +53,7 @@ async function fetchApi(token, period, base, onPage) {
     const q = new URLSearchParams({ lang: 'ru', period, dimension_field: 'geo|city', limits: JSON.stringify({ limit: 1000, offset: out.length }) });
     ['shows', 'partner_wo_nds', 'clicks'].forEach((f) => q.append('field', f));
     ['block_caption', 'browser'].forEach((f) => q.append('entity_field', f));
-    const r = await fetch(base.replace(/\/$/, '') + '/api/statistics2/get.json?' + q, { headers: { Authorization: 'OAuth ' + token }, signal: AbortSignal.timeout(30000) });
+    const r = await fetch(base.replace(/\/$/, '') + '/api/statistics2/get.json?' + q, { headers: { Authorization: 'OAuth ' + token }, signal: AbortSignal.timeout(90000) });
     const j = await r.json().catch(() => ({}));
     if (j.result !== 'ok') throw new Error(r.status + ' ' + JSON.stringify(j).slice(0, 300));
     const pts = j.data.points;

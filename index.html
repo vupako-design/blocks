@@ -14,9 +14,10 @@ input{display:none}#s{display:flex;flex-wrap:wrap;gap:6px;margin:0 12px 8px;max-
 </style></head><body>
 <label>Выбрать файл .xlsx<input id="f" type="file" accept=".xlsx"></label>
 <div id="y"><button>Сегодня</button><button>Вчера</button></div><div id="s"></div><div id="n"></div><div id="l"></div>
-<script src="logic.js"></script>
+<script src="logic.js?v=4"></script>
 <script>
 let rows = [], sel = '';
+n.textContent = 'v4';
 const show = () => {
   const v = sel ? rows.filter((r) => r.geo === sel) : rows;
   n.textContent = `Найдено: ${v.length}`;
@@ -34,12 +35,15 @@ const load = async (p) => {
   const t = localStorage.t || prompt('Токен Яндекса (сохранится на этом устройстве)');
   if (!t) return;
   localStorage.u = u; localStorage.t = t;
-  n.textContent = 'Загрузка…';
+  let cnt = 0;
+  const t0 = Date.now(), tick = setInterval(() => (n.textContent = `Загрузка… ${Math.round((Date.now() - t0) / 1000)} с, строк: ${cnt}`), 500);
   try {
-    const raw = await fetchApi(t, p, u, (c) => (n.textContent = 'Загрузка… строк: ' + c));
+    const raw = await fetchApi(t, p, u, (c) => (cnt = c));
+    clearInterval(tick);
     rows = process(raw); sel = ''; show();
     if (!rows.length) n.textContent = `Получено строк: ${raw.length}, под фильтр ничего не подошло. Пример: ${JSON.stringify(raw[0])}`;
   } catch (e) {
+    clearInterval(tick);
     if (/\b40[13]\b/.test(e.message)) delete localStorage.t;
     if (/Failed to fetch/.test(e.message)) delete localStorage.u;
     n.textContent = 'Ошибка: ' + e.message;
