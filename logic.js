@@ -47,13 +47,13 @@ const process = (rows) =>
 
 // Яндекс API (partner.yandex.ru). Названия полей — в одном месте, если что-то не так, правим здесь.
 const v = (x) => [].concat(x)[0];
-async function fetchApi(token, period) {
+async function fetchApi(token, period, base) {
   const out = [];
   for (let offset = 0, last = false; !last; offset += 1000) {
     const q = new URLSearchParams({ lang: 'ru', period, dimension_field: 'geo|city', limits: JSON.stringify({ limit: 1000, offset }) });
     ['shows', 'partner_wo_nds', 'clicks'].forEach((f) => q.append('field', f));
     ['block_caption', 'browser'].forEach((f) => q.append('entity_field', f));
-    const r = await fetch('https://partner.yandex.ru/api/statistics2/get.json?' + q, { headers: { Authorization: 'OAuth ' + token } });
+    const r = await fetch(base.replace(/\/$/, '') + '/api/statistics2/get.json?' + q, { headers: { Authorization: 'OAuth ' + token } });
     const j = await r.json().catch(() => ({}));
     if (j.result !== 'ok') throw new Error(r.status + ' ' + JSON.stringify(j).slice(0, 300));
     for (const { dimensions: d, measures: [m] } of j.data.points)

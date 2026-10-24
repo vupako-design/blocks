@@ -29,15 +29,19 @@ const show = () => {
 f.onchange = async () => { rows = process(await parseXlsx(await f.files[0].arrayBuffer())); sel = ''; show(); };
 s.onclick = (e) => { if (e.target.tagName === 'BUTTON') { sel = e.target.textContent === 'Все' ? '' : e.target.textContent; show(); } };
 const load = async (p) => {
+  const u = localStorage.u || prompt('Адрес посредника (xxx.workers.dev)');
+  if (!u) return;
   const t = localStorage.t || prompt('Токен Яндекса (сохранится на этом устройстве)');
   if (!t) return;
+  localStorage.u = u; localStorage.t = t;
   n.textContent = 'Загрузка…';
   try {
-    const raw = await fetchApi(t, p);
-    localStorage.t = t; rows = process(raw); sel = ''; show();
+    const raw = await fetchApi(t, p, u);
+    rows = process(raw); sel = ''; show();
     if (!rows.length) n.textContent = `Получено строк: ${raw.length}, под фильтр ничего не подошло. Пример: ${JSON.stringify(raw[0])}`;
   } catch (e) {
     if (/\b40[13]\b/.test(e.message)) delete localStorage.t;
+    if (/Failed to fetch/.test(e.message)) delete localStorage.u;
     n.textContent = 'Ошибка: ' + e.message;
   }
 };
