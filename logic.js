@@ -48,21 +48,37 @@ const process = (rows) =>
 // Яндекс API (partner.yandex.ru). Названия полей — в одном месте, если что-то не так, правим здесь.
 const v = (x) => [].concat(x)[0];
 async function fetchApi(token, period, base, onPage) {
-  const out = [];
-  for (let pages = 0, last = false; !last && pages < 200; pages++) {
-    const q = new URLSearchParams({ lang: 'ru', period, dimension_field: 'geo|city', limits: JSON.stringify({ limit: 1000, offset: out.length }) });
+  const url = base.replace(/\/$/, '') + '/api/statistics2/get.json?';
+  const page = async (offset, filter) => {
+    const q = new URLSearchParams({ lang: 'ru', period, dimension_field: 'geo|city', limits: JSON.stringify({ limit: 1000, offset }) });
+    if (filter) q.set('filter', filter);
     ['shows', 'partner_wo_nds', 'clicks'].forEach((f) => q.append('field', f));
     ['block_caption', 'browser'].forEach((f) => q.append('entity_field', f));
-    const r = await fetch(base.replace(/\/$/, '') + '/api/statistics2/get.json?' + q, { headers: { Authorization: 'OAuth ' + token }, signal: AbortSignal.timeout(90000) });
+    const r = await fetch(url + q, { headers: { Authorization: 'OAuth ' + token }, signal: AbortSignal.timeout(90000) });
     const j = await r.json().catch(() => ({}));
     if (j.result !== 'ok') throw new Error(r.status + ' ' + JSON.stringify(j).slice(0, 300));
-    const pts = j.data.points;
-    for (const { dimensions: d, measures: [m] } of pts)
-      out.push({ geo: v(d.geo), block: String(v(d.block_caption)), browser: v(d.browser), shows: m.shows, reward: m.partner_wo_nds, clicks: m.clicks, cpmv: m.shows ? (m.partner_wo_nds / m.shows) * 1000 : 0 });
-    onPage && onPage(out.length);
-    last = j.data.is_last_page === true || !pts.length;
-  }
-  return out;
+    return j.data;
+  };
+  // Первая страница, остальные — параллельно по 5 штук (если Яндекс сообщил общее число строк).
+  const all = async (filter) => {
+    let d = await page(0, filter);
+    const pts = [...d.points], step = pts.length;
+    if (!d.is_last_page && step) {
+      if (d.total_rows > step) {
+        const offs = [];
+        for (let o = step; o < d.total_rows; o += step) offs.push(o);
+        for (let i = 0; i < offs.length; i += 5) {
+          (await Promise.all(offs.slice(i, i + 5).map((o) => page(o, filter)))).forEach((x) => pts.push(...x.points));
+          onPage && onPage(pts.length);
+        }
+      } else do { d = await page(pts.length, filter); pts.push(...d.points); onPage && onPage(pts.length); } while (!d.is_last_page && d.points.length && pts.length < 2e5);
+    }
+    return pts;
+  };
+  // Просим у Яндекса сразу только нужный браузер (в разы меньше данных). Не вышло — берём всё, как раньше.
+  let pts = await all('["browser","=","MobileFirefox"]').catch((e) => { if (/^(?!40[13])[45]\d\d /.test(e.message)) return []; throw e; });
+  if (!pts.length) pts = await all();
+  return pts.map(({ dimensions: d, measures: [m] }) => ({ geo: v(d.geo), block: String(v(d.block_caption)), browser: v(d.browser), shows: m.shows, reward: m.partner_wo_nds, clicks: m.clicks, cpmv: m.shows ? (m.partner_wo_nds / m.shows) * 1000 : 0 }));
 }
 
 if (typeof module !== 'undefined') module.exports = { parseXlsx, process, fetchApi };
