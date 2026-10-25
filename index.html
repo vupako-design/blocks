@@ -60,6 +60,8 @@ const refresh = async () => {
     show(); n.textContent += ' · не удалось обновить: ' + e.message;
   } finally { clearInterval(tick); busy = 0; }
 };
+// Ключ можно передать ссылкой: адрес приложения + #k=ключ (сохраняется и убирается из адресной строки)
+if (location.hash.startsWith('#k=')) { localStorage.k = decodeURIComponent(location.hash.slice(3)); history.replaceState(null, '', location.pathname); }
 const go = () => load().then(refresh);
 go();
 document.onvisibilitychange = () => document.hidden || go();
