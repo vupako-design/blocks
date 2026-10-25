@@ -29,16 +29,39 @@ const show = () => {
 f.onchange = async () => { rows = process(await parseXlsx(await f.files[0].arrayBuffer())); sel = upd = ''; show(); };
 s.onclick = (e) => { if (e.target.tagName === 'BUTTON') { sel = e.target.textContent === 'Все' ? '' : e.target.textContent; show(); } };
 l.onclick = (e) => { if (e.target.className === 't') { sel = sel ? '' : e.target.textContent; show(); } };
-// Данные кладёт на сайт GitHub (см. update.js), страница их просто читает.
-const load = async () => {
-  try {
-    const d = await (await fetch('data.json', { cache: 'no-store' })).json();
-    rows = d.rows; upd = ' · обновлено ' + new Date(d.updated).toLocaleString('ru', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
-    if (!rows.some((r) => r.geo === sel)) sel = '';
-    show();
-  } catch { rows.length || (n.textContent = 'Данных пока нет. На GitHub: Actions → Обновление данных → Run workflow'); }
+// Данные кладёт на сайт GitHub (см. update.js). При заходе просим GitHub обновить их и ждём свежий файл.
+const [O, R] = [location.hostname.split('.')[0], location.pathname.split('/')[1]];
+let cur = '', busy = 0;
+const fresh = async () => (await fetch('data.json', { cache: 'no-store' })).json();
+const apply = (d) => {
+  rows = d.rows; cur = d.updated;
+  upd = ' · обновлено ' + new Date(cur).toLocaleString('ru', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+  if (!rows.some((r) => r.geo === sel)) sel = '';
+  show();
 };
-load();
-document.onvisibilitychange = () => document.hidden || load();
+const load = async () => { try { apply(await fresh()); } catch { rows.length || (n.textContent = 'Данных пока нет. На GitHub: Actions → Обновление данных → Run workflow'); } };
+const refresh = async () => {
+  if (busy || Date.now() - (localStorage.r || 0) < 3e4) return;
+  const k = localStorage.k || prompt('Ключ GitHub для обновления (вводится один раз)');
+  if (!k) return;
+  busy = 1; localStorage.k = k; localStorage.r = Date.now();
+  const t0 = Date.now(), tick = setInterval(() => (n.textContent = `Обновляю… ${Math.round((Date.now() - t0) / 1000)} с`), 500);
+  try {
+    const r = await fetch(`https://api.github.com/repos/${O}/${R}/actions/workflows/update.yml/dispatches`, { method: 'POST', headers: { Authorization: 'Bearer ' + k, Accept: 'application/vnd.github+json' }, body: '{"ref":"main"}' });
+    if (r.status !== 204) throw new Error('GitHub ответил ' + r.status);
+    for (let i = 0; i < 24; i++) {
+      await new Promise((ok) => setTimeout(ok, 5000));
+      const d = await fresh().catch(() => ({}));
+      if (d.updated && d.updated !== cur) return apply(d);
+    }
+    throw new Error('не дождался свежих данных');
+  } catch (e) {
+    if (/ответил 40[134]/.test(e.message)) delete localStorage.k;
+    show(); n.textContent += ' · не удалось обновить: ' + e.message;
+  } finally { clearInterval(tick); busy = 0; }
+};
+const go = () => load().then(refresh);
+go();
+document.onvisibilitychange = () => document.hidden || go();
 'serviceWorker' in navigator && navigator.serviceWorker.register('sw.js');
 </script></body></html>
