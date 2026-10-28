@@ -7,4 +7,4 @@ const { fetchApi, process: filter } = require('./logic.js');
   require('fs').writeFileSync('_site/data.json', JSON.stringify({ updated: new Date().toISOString(), rows }));
   console.log(`Строк от Яндекса: ${raw.length}, после фильтра: ${rows.length}`);
   if (!rows.length && raw.length) console.log('Пример строки:', JSON.stringify(raw[0]));
-})().catch((e) => { console.error('Ошибка:', e.message); process.exit(1); });
+})().catch((e) => { console.error('Ошибка:', e.message, e.cause); process.exit(1); });
