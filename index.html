@@ -19,7 +19,7 @@ input{display:none}#s{display:flex;flex-wrap:wrap;gap:6px;margin:0 12px 8px;max-
 let rows = [], sel = '', upd = '';
 const show = () => {
   const v = sel ? rows.filter((r) => r.geo === sel) : rows;
-  n.textContent = `Найдено: ${v.length} · Доход: ${v.reduce((a, r) => a + r.reward, 0).toFixed(2)} ₽${upd}`;
+  n.textContent = `Найдено: ${v.length}${upd}`;
   s.innerHTML = ['', ...new Set(rows.map((r) => r.geo))].sort().map((g) => `<button class="${g === sel ? 'on' : ''}">${g || 'Все'}</button>`).join('');
   l.innerHTML = v.map((r) => `<div class="c"><div class="t">${r.geo}</div><div class="p">${r.cpmv.toFixed(2)} ₽</div>
     <div class="b">${r.block}</div>
@@ -35,7 +35,7 @@ let cur = '', busy = 0;
 const fresh = async () => (await fetch('data.json', { cache: 'no-store' })).json();
 const apply = (d) => {
   rows = d.rows; cur = d.updated;
-  upd = ' · обновлено ' + new Date(cur).toLocaleString('ru', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+  upd = (d.total == null ? '' : ` · Доход за день: ${d.total.toFixed(2)} ₽`) + ' · обновлено ' + new Date(cur).toLocaleString('ru', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
   if (!rows.some((r) => r.geo === sel)) sel = '';
   show();
 };
