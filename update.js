@@ -9,12 +9,13 @@ const { fetchApi, process: filter } = require('./logic.js');
   require('fs').writeFileSync('_site/data.json', JSON.stringify({ updated: new Date().toISOString(), total, rows }));
   // links.json для телефонов: время обновления и по каждому городу — ссылки игр с CPM от 1000. Ссылки берём из games.txt.
   const fs = require('fs');
-  const map = Object.fromEntries((fs.existsSync('games.txt') ? fs.readFileSync('games.txt', 'utf8') : '').split(/\r?\n/).map((l) => l.match(/^(\S+)\s+-\s+(.+)$/)).filter(Boolean).map((m) => [m[2].trim().toLowerCase(), m[1]]));
+  const k = (n) => n.replace(/\s*\[.*/, '').trim().toLowerCase(); // «Игра [fullscreen_mobile]» -> «игра»
+  const map = Object.fromEntries((fs.existsSync('games.txt') ? fs.readFileSync('games.txt', 'utf8') : '').split(/\r?\n/).map((l) => l.match(/^(\S+)\s+-\s+(.+)$/)).filter(Boolean).map((m) => [k(m[2]), m[1]]));
   const links = {};
-  rows.forEach((r) => map[r.block.toLowerCase()] && (links[r.geo] ??= []).push(map[r.block.toLowerCase()]));
+  rows.forEach((r) => { const l = map[k(r.block)]; l && !(links[r.geo] ??= []).includes(l) && links[r.geo].push(l); });
   fs.writeFileSync('_site/links.json', JSON.stringify({ updated: new Date().toISOString(), links }));
   const names = [...new Set(rows.map((r) => r.block))];
-  const miss = names.filter((n) => !map[n.toLowerCase()]);
+  const miss = names.filter((n) => !map[k(n)]);
   if (miss.length) console.log('Нет ссылки в games.txt:', miss.join(', '));
   console.log(`Строк от Яндекса: ${raw.length}, после фильтра: ${rows.length}`);
   if (!rows.length && raw.length) console.log('Пример строки:', JSON.stringify(raw[0]));
