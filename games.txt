@@ -1,0 +1,11 @@
+# Формат: URL  -  Название блока [тип]
+# Типы: fullscreen_mobile, sticky_mobile_bottom_wide, fullscreen_desktop
+# Строки без [типа] используются как общий URL для найденного типа блока; этап определяется по данным Яндекса.
+# Если для этапа нужен отдельный URL, добавляйте строку с тем же названием и явным типом блока,
+# например: https://yandex.ru/games/app/example - Название игры [sticky_mobile_bottom_wide]
+# и:       https://yandex.ru/games/app/example - Название игры [fullscreen_desktop]
+https://yandex.ru/games/app/puzyriaka-545673  -  Пузыряка
+https://yandex.ru/games/app/bul-bul-536069  -  Буль-буль
+https://yandex.ru/games/app/klin-lovets-542871  -  Клин-Ловец
+https://yandex.ru/games/app/probivnoi-kharakter-610396  -  Пробивной характер
+https://yandex.ru/games/app/prygun-ponevole-606980  -  Прыгун поневоле
