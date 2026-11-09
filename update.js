@@ -1,7 +1,9 @@
 // Запускается на GitHub: забирает данные у Яндекса и пишет _site/data.json
 const { fetchApi, process: filter } = require('./logic.js');
 (async () => {
-  const raw = await fetchApi(process.env.YANDEX_TOKEN, 'today', 'https://partner.yandex.ru');
+  // sticky_mobile_bottom и sticky_mobile_bottom_wide — один и тот же блок.
+  const fix = (s) => s.replace(/\[sticky_mobile_bottom\]/g, '[sticky_mobile_bottom_wide]');
+  const raw = (await fetchApi(process.env.YANDEX_TOKEN, 'today', 'https://partner.yandex.ru')).map((r) => ({ ...r, block: fix(r.block) }));
   const rows = filter(raw);
   const total = await fetch('https://partner.yandex.ru/api/statistics2/get.json?lang=ru&period=today&dimension_field=date|day&field=partner_wo_nds', { headers: { Authorization: 'OAuth ' + process.env.YANDEX_TOKEN } })
     .then((r) => r.json()).then((j) => j.data.points.reduce((a, p) => a + p.measures[0].partner_wo_nds, 0)).catch((e) => console.error('Сумма не получена:', e.message));
@@ -19,7 +21,7 @@ const { fetchApi, process: filter } = require('./logic.js');
   const allowed = new Set(['fullscreen_mobile', 'sticky_mobile_bottom_wide', 'fullscreen_desktop']);
   const map = new Map();
   const fallbackMap = new Map();
-  (fs.existsSync('games.txt') ? fs.readFileSync('games.txt', 'utf8') : '')
+  fix(fs.existsSync('games.txt') ? fs.readFileSync('games.txt', 'utf8') : '')
     .split(/\r?\n/)
     .map((line) => line.match(/^(\S+)\s+-\s+(.+)$/))
     .filter(Boolean)
