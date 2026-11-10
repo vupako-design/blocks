@@ -3,10 +3,11 @@ const { fetchApi, process: filter } = require('./logic.js');
 (async () => {
   // sticky_mobile_bottom и sticky_mobile_bottom_wide — один и тот же блок.
   const fix = (s) => s.replace(/\[sticky_mobile_bottom\]/g, '[sticky_mobile_bottom_wide]');
+  const totalP = fetch('https://partner.yandex.ru/api/statistics2/get.json?lang=ru&period=today&dimension_field=date|day&field=partner_wo_nds', { headers: { Authorization: 'OAuth ' + process.env.YANDEX_TOKEN } })
+    .then((r) => r.json()).then((j) => j.data.points.reduce((a, p) => a + p.measures[0].partner_wo_nds, 0)).catch((e) => console.error('Сумма не получена:', e.message));
   const raw = (await fetchApi(process.env.YANDEX_TOKEN, 'today', 'https://partner.yandex.ru')).map((r) => ({ ...r, block: fix(r.block) }));
   const rows = filter(raw);
-  const total = await fetch('https://partner.yandex.ru/api/statistics2/get.json?lang=ru&period=today&dimension_field=date|day&field=partner_wo_nds', { headers: { Authorization: 'OAuth ' + process.env.YANDEX_TOKEN } })
-    .then((r) => r.json()).then((j) => j.data.points.reduce((a, p) => a + p.measures[0].partner_wo_nds, 0)).catch((e) => console.error('Сумма не получена:', e.message));
+  const total = await totalP;
   require('fs').mkdirSync('_site', { recursive: true });
   require('fs').writeFileSync('_site/data.json', JSON.stringify({ updated: new Date().toISOString(), total, rows }));
   const fs = require('fs');

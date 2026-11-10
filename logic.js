@@ -75,9 +75,7 @@ async function fetchApi(token, period, base, onPage) {
     }
     return pts;
   };
-  // Просим у Яндекса сразу только нужный браузер (в разы меньше данных). Не вышло — берём всё, как раньше.
-  let pts = await all('["browser","IN",["MobileFirefox","Firefox"]]').catch((e) => { if (/^(?!40[13])[45]\d\d /.test(e.message)) return []; throw e; });
-  if (!pts.length) pts = await all();
+  const pts = await all('["browser","IN",["MobileFirefox","Firefox"]]');
   return pts.map(({ dimensions: d, measures: [m] }) => ({ geo: v(d.geo), block: String(v(d.block_caption)), browser: v(d.browser), shows: m.shows, reward: m.partner_wo_nds, clicks: m.clicks, cpmv: m.shows ? (m.partner_wo_nds / m.shows) * 1000 : 0 }));
 }
 
