@@ -39,11 +39,16 @@ async function parseXlsx(buf) {
   return rows;
 }
 
-const process = (rows) =>
-  rows
-    .filter((r) => /Firefox/.test(r.browser) && r.cpmv >= 1000 && r.geo !== 'Не определено')
+// Для каждого города свой порог: от 6000 вниз с шагом 1000 до 1000 — берём первый, где есть строки.
+const process = (rows) => {
+  const ok = rows.filter((r) => /Firefox/.test(r.browser) && r.geo !== 'Не определено');
+  const top = {};
+  ok.forEach((r) => (top[r.geo] = Math.max(top[r.geo] || 0, r.cpmv)));
+  return ok
+    .filter((r) => top[r.geo] >= 1000 && r.cpmv >= Math.min(6000, Math.floor(top[r.geo] / 1000) * 1000))
     .sort((a, b) => b.cpmv - a.cpmv)
     .map((r) => ({ ...r, block: r.block.replace('HTML5 game: ', ''), green: r.shows > 1 }));
+};
 
 // Яндекс API (partner.yandex.ru). Названия полей — в одном месте, если что-то не так, правим здесь.
 const v = (x) => [].concat(x)[0];
