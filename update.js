@@ -9,7 +9,7 @@ const { fetchApi, process: filter } = require('./logic.js');
   const rows = filter(raw);
   const total = await totalP;
   require('fs').mkdirSync('_site', { recursive: true });
-  require('fs').writeFileSync('_site/data.json', JSON.stringify({ updated: new Date().toISOString(), total, rows }));
+  require('fs').writeFileSync('_site/data.json', JSON.stringify({ updated: new Date().toISOString(), total, rows: filter(raw, true) }));
   const fs = require('fs');
   // Для каждого типа блока формируем отдельную выдачу ссылок по городу.
   // Старые строки games.txt без [типа] считаются fullscreen_mobile для совместимости.

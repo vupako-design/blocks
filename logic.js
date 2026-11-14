@@ -40,12 +40,13 @@ async function parseXlsx(buf) {
 }
 
 // Для каждого города свой порог: от 6000 вниз с шагом 1000 до 1000 — берём первый, где есть строки.
-const process = (rows) => {
+// all=true — для сайта: все строки от 1000, без порогов по городам.
+const process = (rows, all) => {
   const ok = rows.filter((r) => /Firefox/.test(r.browser) && r.geo !== 'Не определено');
   const top = {};
   ok.forEach((r) => (top[r.geo] = Math.max(top[r.geo] || 0, r.cpmv)));
   return ok
-    .filter((r) => top[r.geo] >= 1000 && r.cpmv >= Math.min(6000, Math.floor(top[r.geo] / 1000) * 1000))
+    .filter((r) => all ? r.cpmv >= 1000 : top[r.geo] >= 1000 && r.cpmv >= Math.min(6000, Math.floor(top[r.geo] / 1000) * 1000))
     .sort((a, b) => b.cpmv - a.cpmv)
     .map((r) => ({ ...r, block: r.block.replace('HTML5 game: ', ''), green: r.shows > 1 }));
 };
