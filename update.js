@@ -14,10 +14,10 @@ const { fetchApi, process: filter } = require('./logic.js');
   const androidRaw = rawAndroid.map((r) => ({ ...r, block: fix(r.block) }));
   const windowsRaw = rawWindows.map((r) => ({ ...r, block: fix(r.block) }));
   const rows = filter(androidRaw);
-  const windowsRows = filter(windowsRaw, true, /Edge/i).filter((r) => r.cpmv >= 1000);
+  const windowsRows = filter(windowsRaw, false, /Edge/i); // этапы от 6000 до 1000 по городу — как у Android
   const total = await totalP;
   require('fs').mkdirSync('_site', { recursive: true });
-  require('fs').writeFileSync('_site/data.json', JSON.stringify({ updated: new Date().toISOString(), total, rows: filter(androidRaw, true), windowsRows }));
+  require('fs').writeFileSync('_site/data.json', JSON.stringify({ updated: new Date().toISOString(), total, rows: filter(androidRaw, true), windowsRows: filter(windowsRaw, true, /Edge/i) }));
   const fs = require('fs');
   // Для каждого типа блока формируем отдельную выдачу ссылок по городу.
   // Старые строки games.txt без [типа] считаются fullscreen_mobile для совместимости.
@@ -56,8 +56,7 @@ const { fetchApi, process: filter } = require('./logic.js');
     desktop_rsya_feed: {},
     fullscreen_desktop: {},
   };
-  // Windows has a fixed CPMV floor of 1000. Keep it separate from Android's
-  // existing per-city dynamic threshold so Android behavior remains unchanged.
+  // Windows: те же этапы (от 6000 до 1000 по городу), но по данным Edge и отдельно от Android.
   const windowsStageLinks = {
     desktop_rsya_feed: {},
     fullscreen_desktop: {},
@@ -98,7 +97,7 @@ const { fetchApi, process: filter } = require('./logic.js');
   const miss = names.filter((n) => { const e = parseEntry(n); return !map.has(`${e.name}\u0000${e.mode}`) && !fallbackMap.has(e.name) && ![...map.keys()].some((key) => key.startsWith(`${e.name}\u0000`)); });
   if (miss.length) console.log('Нет ссылки в games.txt:', miss.join(', '));
   console.log(`Строк Android (Firefox): ${androidRaw.length}, после фильтра: ${rows.length}`);
-  console.log(`Строк Windows (Edge): ${windowsRaw.length}, CPMV >= 1000: ${windowsRows.length}`);
+  console.log(`Строк Windows (Edge): ${windowsRaw.length}, после этапов: ${windowsRows.length}`);
   if (!rows.length && androidRaw.length) console.log('Пример строки Android:', JSON.stringify(androidRaw[0]));
   if (!windowsRows.length && windowsRaw.length) console.log('Пример строки Windows:', JSON.stringify(windowsRaw[0]));
 })().catch((e) => { console.error('Ошибка:', e.message, e.cause); process.exit(1); });
