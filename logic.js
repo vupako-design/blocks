@@ -41,8 +41,8 @@ async function parseXlsx(buf) {
 
 // Для каждого города свой порог: от 6000 вниз с шагом 1000 до 1000 — берём первый, где есть строки.
 // all=true — для сайта: все строки от 1000, без порогов по городам.
-const process = (rows, all) => {
-  const ok = rows.filter((r) => /Firefox/.test(r.browser) && r.geo !== 'Не определено');
+const process = (rows, all, browserPattern = /Firefox/i) => {
+  const ok = rows.filter((r) => browserPattern.test(String(r.browser)) && Boolean(r.geo) && r.geo !== 'Не определено');
   const top = {};
   ok.forEach((r) => (top[r.geo] = Math.max(top[r.geo] || 0, r.cpmv)));
   return ok
@@ -53,7 +53,7 @@ const process = (rows, all) => {
 
 // Яндекс API (partner.yandex.ru). Названия полей — в одном месте, если что-то не так, правим здесь.
 const v = (x) => [].concat(x)[0];
-async function fetchApi(token, period, base, onPage) {
+async function fetchApi(token, period, base, onPage, browserNames = ['MobileFirefox', 'Firefox']) {
   const url = base.replace(/\/$/, '') + '/api/statistics2/get.json?';
   const page = async (offset, filter) => {
     const q = new URLSearchParams({ lang: 'ru', period, dimension_field: 'geo|city', limits: JSON.stringify({ limit: 1000, offset }) });
@@ -81,7 +81,7 @@ async function fetchApi(token, period, base, onPage) {
     }
     return pts;
   };
-  const pts = await all('["browser","IN",["MobileFirefox","Firefox"]]');
+  const pts = await all(JSON.stringify(['browser', 'IN', browserNames]));
   return pts.map(({ dimensions: d, measures: [m] }) => ({ geo: v(d.geo), block: String(v(d.block_caption)), browser: v(d.browser), shows: m.shows, reward: m.partner_wo_nds, clicks: m.clicks, cpmv: m.shows ? (m.partner_wo_nds / m.shows) * 1000 : 0 }));
 }
 

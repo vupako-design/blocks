@@ -18,7 +18,7 @@ input{display:none}#s{display:flex;flex-wrap:wrap;gap:6px;margin:0 12px 8px;max-
 <script src="logic.js?v=6"></script>
 <script>
 let rows = [], sel = '', upd = '';
-const H = { fullscreen_mobile: 270, sticky_mobile_bottom_wide: 210, sticky_mobile_bottom: 25, fullscreen_desktop: 140 };
+const H = { fullscreen_mobile: 270, sticky_mobile_bottom_wide: 210, sticky_mobile_bottom: 25, desktop_rsya_feed: 305, fullscreen_desktop: 140 };
 const hue = (s) => H[s] ?? Math.abs([...s].reduce((a, c) => (a * 31 + c.charCodeAt(0)) | 0, 7)) * 137.5 % 360 | 0;
 const blk = (b) => { const [, g, t] = b.match(/^(.*?)\s*(?:\[(.*)\])?$/); const h = hue(t || ''); return `<b>${g}</b>` + (t ? ` <span class="k" style="background:hsl(${h} 70% 88%);color:hsl(${h} 70% 25%)">${t}</span>` : ''); };
 const show = () => {
