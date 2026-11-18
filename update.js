@@ -61,13 +61,14 @@ const { fetchApi, process: filter } = require('./logic.js');
     desktop_rsya_feed: {},
     fullscreen_desktop: {},
   };
-  const addMappedRow = (target, r, requireExplicitWindowsType = false) => {
+  const addMappedRow = (target, r, requireExplicitWindowsType = false, cpmvTarget) => {
     const entry = parseEntry(r.block);
     const hasExplicitType = /\s*\[[^\]]+\]\s*$/.test(String(r.block));
     const add = (mode, url) => {
       if (!url || !target[mode]) return;
       const cityLinks = (target[mode][r.geo] ??= []);
       if (!cityLinks.includes(url)) cityLinks.push(url);
+      if (cpmvTarget) { const c = ((cpmvTarget[mode] ??= {})[r.geo] ??= {}); c[url] = Math.max(c[url] || 0, +r.cpmv.toFixed(2)); } // CPMV ссылки — чтобы приложение выбирало самую дорогую
     };
     if (hasExplicitType) {
       const typedUrl = map.get(`${entry.name}\u0000${entry.mode}`);
@@ -89,10 +90,11 @@ const { fetchApi, process: filter } = require('./logic.js');
   rows.forEach((r) => addMappedRow(stageLinks, r));
   // Для Windows допускаются только явные типизированные строки games.txt.
   // Общие/старые Android-записи не могут случайно попасть в Windows-выдачу.
-  windowsRows.forEach((r) => addMappedRow(windowsStageLinks, r, true));
+  const windowsStageCpmv = {};
+  windowsRows.forEach((r) => addMappedRow(windowsStageLinks, r, true, windowsStageCpmv));
   // `links` оставлен для старых клиентов и означает только fullscreen_mobile.
   const links = stageLinks.fullscreen_mobile;
-  fs.writeFileSync('_site/links.json', JSON.stringify({ updated: new Date().toISOString(), minCpmv: 1000, links, stageLinks, stageAllLinks, windowsStageLinks }));
+  fs.writeFileSync('_site/links.json', JSON.stringify({ updated: new Date().toISOString(), minCpmv: 1000, links, stageLinks, stageAllLinks, windowsStageLinks, windowsStageCpmv }));
   const names = [...new Set(rows.map((r) => r.block))];
   const miss = names.filter((n) => { const e = parseEntry(n); return !map.has(`${e.name}\u0000${e.mode}`) && !fallbackMap.has(e.name) && ![...map.keys()].some((key) => key.startsWith(`${e.name}\u0000`)); });
   if (miss.length) console.log('Нет ссылки в games.txt:', miss.join(', '));
