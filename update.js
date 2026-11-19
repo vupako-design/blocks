@@ -87,14 +87,15 @@ const { fetchApi, process: filter } = require('./logic.js');
   // All raw rows define the complete per-format bypass list; filtered rows
   // define only the checked/selected list for the full-work phase.
   androidRaw.forEach((r) => addMappedRow(stageAllLinks, r));
-  rows.forEach((r) => addMappedRow(stageLinks, r));
+  const stageCpmv = {}; // CPMV ссылок для Android — чтобы приложение выбирало самую дорогую
+  rows.forEach((r) => addMappedRow(stageLinks, r, false, stageCpmv));
   // Для Windows допускаются только явные типизированные строки games.txt.
   // Общие/старые Android-записи не могут случайно попасть в Windows-выдачу.
   const windowsStageCpmv = {};
   windowsRows.forEach((r) => addMappedRow(windowsStageLinks, r, true, windowsStageCpmv));
   // `links` оставлен для старых клиентов и означает только fullscreen_mobile.
   const links = stageLinks.fullscreen_mobile;
-  fs.writeFileSync('_site/links.json', JSON.stringify({ updated: new Date().toISOString(), minCpmv: 1000, links, stageLinks, stageAllLinks, windowsStageLinks, windowsStageCpmv }));
+  fs.writeFileSync('_site/links.json', JSON.stringify({ updated: new Date().toISOString(), minCpmv: 1000, links, stageLinks, stageAllLinks, stageCpmv, windowsStageLinks, windowsStageCpmv }));
   const names = [...new Set(rows.map((r) => r.block))];
   const miss = names.filter((n) => { const e = parseEntry(n); return !map.has(`${e.name}\u0000${e.mode}`) && !fallbackMap.has(e.name) && ![...map.keys()].some((key) => key.startsWith(`${e.name}\u0000`)); });
   if (miss.length) console.log('Нет ссылки в games.txt:', miss.join(', '));
