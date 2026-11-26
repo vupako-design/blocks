@@ -1,0 +1,27 @@
+name: Таймер обновления
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '*/30 * * * *' # только перезапуск, если цепочка оборвалась
+permissions:
+  actions: write
+concurrency:
+  group: ticker
+  cancel-in-progress: false
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # 5 ч 50 мин: каждые 15 минут по часам (:00 :15 :30 :45 UTC) запускаем update.yml, потом передаём эстафету новому запуску
+          end=$(( $(date +%s) + 21000 ))
+          while :; do
+            now=$(date +%s); next=$(( (now / 900 + 1) * 900 ))
+            [ $next -ge $end ] && break
+            sleep $(( next - now ))
+            gh workflow run update.yml -R "$GITHUB_REPOSITORY" --ref main
+          done
+          gh workflow run ticker.yml -R "$GITHUB_REPOSITORY" --ref main
